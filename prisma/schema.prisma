@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PARTIAL
+  CANCELED
+  REFUNDED
+  REFILL_AVAILABLE
+  FAILED
+}
+
+enum TopUpStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  password      String
+  role          Role     @default(USER)
+  isBlocked     Boolean  @default(false)
+  walletBalance Float    @default(0)
+  totalSpent    Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders        Order[]
+  topUpRequests TopUpRequest[]
+  adminLogs     AdminActionLog[]
+}
+
+model Service {
+  id             String   @id @default(cuid())
+  providerId     Int      @unique
+  name           String
+  nameAr         String?
+  category       String
+  categoryAr     String?
+  description    String?
+  descriptionAr  String?
+  min            Int
+  max            Int
+  basePricePerK  Float
+  markupPercent  Float    @default(20)
+  finalPricePerK Float
+  refill         Boolean  @default(false)
+  cancel         Boolean  @default(false)
+  type           String?
+  isActive       Boolean  @default(true)
+  isHidden       Boolean  @default(false)
+  note           String?
+  noteAr         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  serviceId       String
+  providerOrderId Int?
+  link            String
+  quantity        Int
+  pricePaid       Float
+  purchaseCost    Float
+  profit          Float
+  status          OrderStatus @default(PENDING)
+  startCount      Int?
+  remains         Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+}
+
+model TopUpRequest {
+  id              String      @id @default(cuid())
+  userId          String
+  paymentMethodId String
+  amount          Float
+  transactionRef  String
+  note            String?
+  status          TopUpStatus @default(PENDING)
+  creditedAmount  Float?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethod PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+}
+
+model PaymentMethod {
+  id             String   @id @default(cuid())
+  name           String
+  nameAr         String
+  description    String?
+  descriptionAr  String?
+  accountInfo    String
+  instructions   String?
+  instructionsAr String?
+  currency       String   @default("USD")
+  conversionRate Float    @default(1)
+  minAmount      Float    @default(1)
+  maxAmount      Float    @default(10000)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  topUpRequests TopUpRequest[]
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ApiProviderConfig {
+  id        String   @id @default(cuid())
+  name      String
+  apiKey    String
+  baseUrl   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdminActionLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
+
+model ButtonConfig {
+  id        String   @id @default(cuid())
+  label     String
+  labelAr   String
+  url       String?
+  message   String?
+  messageAr String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
