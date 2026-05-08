@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "db:push": "prisma db push --accept-data-loss",
     "postinstall": "prisma generate"
   },
   "dependencies": {
